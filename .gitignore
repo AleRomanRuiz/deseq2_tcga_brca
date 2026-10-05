@@ -1,0 +1,18 @@
+# Conda local env
+.venv/
+
+# R / editor caches
+.Rhistory
+.RData
+.Rproj.user/
+
+# Logs and gerenerated artifacts
+logs/*.log
+data/processed/*
+data/raw/*
+
+# Keep folder structure
+!data/processed/.gitkeep
+!data/raw/.gitkeep
+!results/.gitkeep
+!logs/.gitkeep

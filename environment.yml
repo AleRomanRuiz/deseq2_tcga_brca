@@ -1,0 +1,16 @@
+name: /home/ale/proyectos/proyecto_deseq2_resuelto/.venv
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bioconductor-enrichplot
+  - bioconductor-org.hs.eg.db
+  - bioconductor-deseq2
+  - bioconductor-apeglm
+  - bioconductor-biocversion=3.22
+  - bioconductor-reactomepa
+  - r-base=4.5
+  - bioconductor-clusterprofiler
+  - r-optparse
+prefix: /home/ale/proyectos/proyecto_deseq2_resuelto/.venv

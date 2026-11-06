@@ -3,6 +3,7 @@ library(clusterProfiler)
 library(ReactomePA)
 library(org.Hs.eg.db)
 library(enrichplot)
+library(ggplot2)
 
 dir.create("results", showWarnings = FALSE, recursive = TRUE)
 dir.create("logs", showWarnings = FALSE, recursive = TRUE)
@@ -19,8 +20,8 @@ alpha <- 0.05
 lfc_threshold <- 1
 
 message("[1/8] Leyendo datos de entrada (TCGA-BRCA)...")
-counts_df <- read.csv(counts_path, row.names=1, check.names=FALSE, stringAsFactors=FALSE) ## esto es muy importante para que no se cambien los nombres de las columnas
-metadata <- read.csv(metadata_path, row.names=1, stringAsFactors=FALSE, check.names=FALSE) 
+counts_df <- read.csv(counts_path, row.names=1, check.names=FALSE, stringsAsFactors=FALSE) ## esto es muy importante para que no se cambien los nombres de las columnas
+metadata_df <- read.csv(metadata_path, row.names=1, stringsAsFactors=FALSE, check.names=FALSE) 
 
 stopifnot(condition_column %in% colnames(metadata_df))
 stopifnot(plate_column %in% colnames(metadata_df))
@@ -58,14 +59,14 @@ contrast = c(condition_column, condition_test, condition_ref),
 alpha = alpha,
 )
 res_df <- as.data.frame(res)
-res_df <- rownames(res_df)
+res_df$gene_id <- rownames(res_df)
 res_df <- res_df[order(res_df$padj), ]
 
 write.table(
   res_df,
-  file = "results/deseq2_a11_results.csv"
-  sep = "/t"
-  quote = FALSE
+  file = "results/deseq2_all_results.tsv",
+  sep = "\t",
+  quote = FALSE,
   row.names = FALSE
 )
 
@@ -129,7 +130,7 @@ write.table(
 
 
 volcano_df <- res_df[!is.na(res_df$padj), ]
-volcano_df%status <- "No significativo"
+volcano_df$status <- "No significativo"
 volcano_df$status[volcano_df$gene_id %in% up_df$gene_id] <- "Up"
 volcano_df$status[volcano_df$gene_id %in% down_df$gene_id] <- "Down"
 
@@ -185,7 +186,7 @@ go_up <- enrichGO(
   qvalueCutoff = 0.20,
   readable = TRUE
 )
-write.table(as.data.frame(go_up), "results/go_up_enrichment.tsv",sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(as.data.frame(go_up), "results/go_bp_up.tsv",sep = "\t", quote = FALSE, row.names = FALSE)
 ggsave("results/plot_go_bp_up.png", dotplot(go_up, showCategory = 10), width = 8, height = 6)
 
 go.down <- enrichGO(
@@ -198,7 +199,7 @@ go.down <- enrichGO(
   qvalueCutoff = 0.20,
   readable = TRUE
 )
-write.table(as.data.frame(go.down), "results/go_bp_down_enrichment.tsv",sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(as.data.frame(go.down), "results/go_bp_down.tsv",sep = "\t", quote = FALSE, row.names = FALSE)
 ggsave("results/plot_go_bp_down.png", dotplot(go.down, showCategory = 10), width = 8, height = 6)
 
 reactome_up <- enrichPathway(
@@ -226,19 +227,19 @@ write.table(as.data.frame(reactome_down), "results/reactome_down.tsv",sep = "\t"
 ggsave("results/plot_reactome_down.png", dotplot(reactome_down, showCategory = 10), width = 8, height = 6)
 
 message("[8/8] Guardando trazabilidad de sesion...")
-writelines(capture.output(sessionInfo()), "logs/session_info.txt")
+writeLines(capture.output(sessionInfo()), "logs/sessionInfo.txt")
 
 summary_lines <- c(
   paste("n_samples:", ncol(counts_mat)),
   paste("n_genes_input:", nrow(counts_mat)),
   paste("n_genes_after_filter:", nrow(dds)),
-  paste("n_significant_padj_It", alpha, ":", nrow(sig_df), sep = ""),
-  paste("n_de_absLog2FC_gt_", lnf_threshold, "_padj_It", alpha, ":", nrow(de_df), sep = ""),
+  paste("n_significant_padj_lt", alpha, ":", nrow(sig_df), sep = ""),
+  paste("n_de_absLog2FC_gt_", lfc_threshold, "_padj_lt", alpha, ":", nrow(de_df), sep = ""),
   paste("n_up:", nrow(up_df)),
   paste("n_down:", nrow(down_df)),
   paste("top10_up_file:", "results/top10_up_genes.tsv"),
   paste("top10_down_file:", "results/top10_down_genes.tsv"),
-  paste("top10_plot_file:", "results/top10_down_genes.png"),
+  paste("top10_plot_file:", "results/plot_top10_genes.png"),
   paste("volcano_plot_file:", "results/plot_volcano.png")
 )
 writeLines(summary_lines, "logs/run_summary.txt")

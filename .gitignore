@@ -10,6 +10,9 @@
 logs/*.log
 data/processed/*
 data/raw/*
+results/*
+logs/*.txt
+
 
 # Keep folder structure
 !data/processed/.gitkeep

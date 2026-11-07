@@ -113,21 +113,22 @@ write.table(
   quote = FALSE,
   row.names = FALSE
 )
+# Figura top 10: barras horizontales de log2FC, up a la izquierda y down a la derecha
+top10_plot_df <- rbind(top10_up, top10_down)
+top10_plot_df$direction <- ifelse(top10_plot_df$log2FoldChange > 0, "Up", "Down")
+top10_plot_df$direction <- factor(top10_plot_df$direction, levels = c("Up", "Down"))
 
+p_top10 <- ggplot(top10_plot_df, aes(x = log2FoldChange,
+                                     y = reorder(gene_id, abs(log2FoldChange)),
+                                     fill = direction)) +
+  geom_col() +
+  facet_wrap(~ direction, scales = "free") +
+  scale_fill_manual(values = c(Up = "red", Down = "blue")) +
+  labs(x = "log2FoldChange (tumor vs normal)", y = NULL) +
+  theme_bw() +
+  theme(legend.position = "none")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+ggsave("results/plot_top10_genes.png", p_top10, width = 9, height = 5)
 
 volcano_df <- res_df[!is.na(res_df$padj), ]
 volcano_df$status <- "No significativo"
@@ -144,8 +145,10 @@ p_volcano <- ggplot(volcano_df, aes(x = log2FoldChange, y = -log10(padj), color 
 
 ggsave("results/plot_volcano.png", p_volcano, width = 7, height = 6)
 
-
-
+# Conteos normalizados por size factors (los mismos que usa DESeq2 internamente)
+norm_counts <- counts(dds, normalized = TRUE)
+norm_counts_df <- data.frame(gene_id = rownames(norm_counts), norm_counts, check.names = FALSE)
+write.table(norm_counts_df, "results/normalized_counts.tsv", sep = "\t", quote = FALSE, row.names = FALSE)
 
 png("results/plot_ma.png", width = 800, height = 600)
 plotMA(res, ylim = c(-4, 4))
@@ -153,14 +156,19 @@ dev.off()
 
 message("[6/8] Contextualizacion biologica: gen destacado en el contraste...")
 
+gene_of_interest <- "MKI67"
+stopifnot(gene_of_interest %in% res_df$gene_id)
 
-
-
-
-
-
-
-
+top_gene <- res_df[res_df$gene_id == gene_of_interest, ]
+context_lines <- c(
+  paste("gene_id:", top_gene$gene_id),
+  paste("baseMean:", round(top_gene$baseMean, 2)),
+  paste("log2FoldChange:", round(top_gene$log2FoldChange, 2)),
+  paste("padj:", signif(top_gene$padj, 3)),
+  paste("is_DE_padj_lt", alpha, "_absLog2FC_gt_", lfc_threshold, ": ",
+        gene_of_interest %in% de_df$gene_id, sep = "")
+)
+writeLines(context_lines, "results/top_gene_context.txt")
 
 message("[7/8] Enriquecimiento GO y Reactome...")
 symbol_to_entrez <- bitr(
